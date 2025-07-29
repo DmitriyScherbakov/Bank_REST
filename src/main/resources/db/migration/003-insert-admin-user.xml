@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="insert-admin-user" author="developer">
+        <insert tableName="users">
+            <column name="username" value="admin"/>
+            <column name="password" value="$2a$10$rF.xfNNcCRJwfKv5k8NDeuXwRnRhYYdFJOGUiShV9E8HCXWd7mhgi"/>
+            <column name="email" value="admin@bank.com"/>
+            <column name="role" value="ADMIN"/>
+            <column name="created_at" valueDate="2024-01-01T00:00:00"/>
+        </insert>
+        
+        <rollback>
+            <delete tableName="users">
+                <where>username = 'admin'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
