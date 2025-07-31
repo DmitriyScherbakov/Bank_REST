@@ -1,13 +1,21 @@
 package com.example.bankcards.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cards")
+@Getter
+@Setter
 public class Card {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -52,78 +60,5 @@ public class Card {
         this.cardHolder = cardHolder;
         this.expiryDate = expiryDate;
         this.owner = owner;
-    }
-
-    // Геттеры и сеттеры
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getEncryptedCardNumber() {
-        return encryptedCardNumber;
-    }
-
-    public void setEncryptedCardNumber(String encryptedCardNumber) {
-        this.encryptedCardNumber = encryptedCardNumber;
-    }
-
-    public String getMaskedCardNumber() {
-        return maskedCardNumber;
-    }
-
-    public void setMaskedCardNumber(String maskedCardNumber) {
-        this.maskedCardNumber = maskedCardNumber;
-    }
-
-    public String getCardHolder() {
-        return cardHolder;
-    }
-
-    public void setCardHolder(String cardHolder) {
-        this.cardHolder = cardHolder;
-    }
-
-    public LocalDate getExpiryDate() {
-        return expiryDate;
-    }
-
-    public void setExpiryDate(LocalDate expiryDate) {
-        this.expiryDate = expiryDate;
-    }
-
-    public CardStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(CardStatus status) {
-        this.status = status;
-    }
-
-    public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
-    }
-
-    public User getOwner() {
-        return owner;
-    }
-
-    public void setOwner(User owner) {
-        this.owner = owner;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 }

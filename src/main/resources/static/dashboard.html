@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои карты</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-credit-card"></i> Банковские карты</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="fas fa-user"></i> <span id="username"></span>
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Выход
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Alert для сообщений -->
+        <div id="alert" class="alert d-none" role="alert"></div>
+
+        <!-- Кнопка создания карты -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createCardModal">
+                    <i class="fas fa-plus"></i> Создать карту
+                </button>
+                <button class="btn btn-info" onclick="loadCards()">
+                    <i class="fas fa-refresh"></i> Обновить
+                </button>
+            </div>
+        </div>
+
+        <!-- Список карт -->
+        <div class="row" id="cardsContainer">
+            <!-- Карты будут загружены сюда -->
+        </div>
+    </div>
+
+    <!-- Модальное окно создания карты -->
+    <div class="modal fade" id="createCardModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Создать новую карту</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="createCardForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="cardHolder" class="form-label">Имя владельца карты</label>
+                            <input type="text" class="form-control" id="cardHolder" required minlength="2" 
+                                   placeholder="IVAN PETROV" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-success">Создать карту</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно перевода -->
+    <div class="modal fade" id="transferModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-exchange-alt"></i> Перевод между картами</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="transferForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="fromCard" class="form-label">С карты</label>
+                            <select class="form-select" id="fromCard" required>
+                                <option value="">Выберите карту</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="toCard" class="form-label">На карту</label>
+                            <select class="form-select" id="toCard" required>
+                                <option value="">Выберите карту</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Сумма</label>
+                            <input type="number" class="form-control" id="amount" required min="0.01" step="0.01">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Перевести</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let userCards = [];
+
+        checkAuth();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('username').textContent = localStorage.getItem('username');
+            loadCards();
+        });
+
+        async function loadCards() {
+            try {
+                const response = await apiRequest('/api/cards/my');
+                userCards = Array.isArray(response) ? response : [];
+                displayCards(userCards);
+                updateTransferSelects();
+            } catch (error) {
+                showAlert('Ошибка загрузки карт: ' + error.message, 'danger');
+            }
+        }
+
+        function displayCards(cards) {
+            const container = document.getElementById('cardsContainer');
+            if (cards.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="text-center p-5">
+                            <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">У вас пока нет карт</h4>
+                            <p class="text-muted">Создайте свою первую карту</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = cards.map(card => `
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 ${card.status === 'BLOCKED' ? 'border-danger' : card.status === 'EXPIRED' ? 'border-warning' : 'border-success'}">
+                        <div class="card-header d-flex justify-content-between">
+                            <span class="fw-bold">${card.maskedCardNumber}</span>
+                            <span class="badge ${getStatusBadgeClass(card.status)}">${getStatusText(card.status)}</span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">${card.cardHolder}</h5>
+                            <p class="card-text">
+                                <i class="fas fa-calendar"></i> До: ${formatDate(card.expiryDate)}<br>
+                                <i class="fas fa-ruble-sign"></i> Баланс: <strong>${card.balance} ₽</strong>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            ${card.status === 'ACTIVE' ? 
+                                `<button class="btn btn-danger btn-sm" onclick="blockCard(${card.id})">
+                                    <i class="fas fa-ban"></i> Заблокировать
+                                </button>` : 
+                                '<small class="text-muted">Карта заблокирована</small>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTransferSelects() {
+            const activeCards = userCards.filter(card => card.status === 'ACTIVE');
+            const fromSelect = document.getElementById('fromCard');
+            const toSelect = document.getElementById('toCard');
+            
+            const options = activeCards.map(card => 
+                `<option value="${card.id}">${card.maskedCardNumber} (${card.balance} ₽)</option>`
+            ).join('');
+            
+            fromSelect.innerHTML = '<option value="">Выберите карту</option>' + options;
+            toSelect.innerHTML = '<option value="">Выберите карту</option>' + options;
+        }
+
+        document.getElementById('createCardForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const cardHolder = document.getElementById('cardHolder').value.toUpperCase();
+            
+            try {
+                await apiRequest('/api/cards', {
+                    method: 'POST',
+                    body: JSON.stringify({ cardHolder })
+                });
+                
+                showAlert('Карта успешно создана!', 'success');
+                hideModal('createCardModal');
+                document.getElementById('createCardForm').reset();
+                loadCards();
+            } catch (error) {
+                showAlert('Ошибка создания карты: ' + error.message, 'danger');
+            }
+        });
+
+        document.getElementById('transferForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fromCardId = document.getElementById('fromCard').value;
+            const toCardId = document.getElementById('toCard').value;
+            const amount = document.getElementById('amount').value;
+            
+            if (fromCardId === toCardId) {
+                showAlert('Нельзя переводить на ту же карту', 'warning');
+                return;
+            }
+            
+            try {
+                await apiRequest('/api/cards/transfer', {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        fromCardId: parseInt(fromCardId), 
+                        toCardId: parseInt(toCardId), 
+                        amount: parseFloat(amount) 
+                    })
+                });
+                
+                showAlert('Перевод выполнен успешно!', 'success');
+                hideModal('transferModal');
+                document.getElementById('transferForm').reset();
+                loadCards();
+            } catch (error) {
+                showAlert('Ошибка перевода: ' + error.message, 'danger');
+            }
+        });
+
+        // Блокировка карты
+        async function blockCard(cardId) {
+            if (!confirm('Вы уверены, что хотите заблокировать эту карту?')) return;
+            
+            try {
+                await apiRequest(`/api/cards/${cardId}/block`, { method: 'PUT' });
+                showAlert('Карта заблокирована', 'info');
+                loadCards();
+            } catch (error) {
+                showAlert('Ошибка блокировки карты: ' + error.message, 'danger');
+            }
+        }
+
+        // Открытие модального окна перевода
+        function openTransferModal() {
+            showModal('transferModal');
+        }
+
+        // Добавить кнопку перевода если есть активные карты
+        function checkTransferButton() {
+            const activeCards = userCards.filter(card => card.status === 'ACTIVE');
+            if (activeCards.length >= 2) {
+                const container = document.querySelector('.row.mb-4 .col-md-12');
+                if (!document.getElementById('transferBtn')) {
+                    const btn = document.createElement('button');
+                    btn.id = 'transferBtn';
+                    btn.className = 'btn btn-warning ms-2';
+                    btn.onclick = openTransferModal;
+                    btn.innerHTML = '<i class="fas fa-exchange-alt"></i> Перевод';
+                    container.appendChild(btn);
+                }
+            }
+        }
+
+        // Обновить загрузку карт
+        const originalLoadCards = loadCards;
+        loadCards = async function() {
+            await originalLoadCards();
+            checkTransferButton();
+        };
+
+        // Вспомогательные функции
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case 'ACTIVE': return 'bg-success';
+                case 'BLOCKED': return 'bg-danger';
+                case 'EXPIRED': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'ACTIVE': return 'Активна';
+                case 'BLOCKED': return 'Заблокирована';
+                case 'EXPIRED': return 'Истекла';
+                default: return status;
+            }
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('ru-RU');
+        }
+    </script>
+</body>
+</html>

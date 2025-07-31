@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="insert-test-cards" author="developer">
+        <!-- Карты для user1 -->
+        <insert tableName="cards">
+            <column name="encrypted_card_number" value="enc_4000001234567890"/>
+            <column name="masked_card_number" value="4000 **** **** 7890"/>
+            <column name="card_holder" value="USER ONE"/>
+            <column name="expiry_date" valueDate="2025-12-31"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="balance" valueNumeric="1000.00"/>
+            <column name="owner_id" valueComputed="(SELECT id FROM users WHERE username = 'user1')"/>
+            <column name="created_at" valueDate="2024-01-01T00:00:00"/>
+        </insert>
+
+        <insert tableName="cards">
+            <column name="encrypted_card_number" value="enc_4000001234567891"/>
+            <column name="masked_card_number" value="4000 **** **** 7891"/>
+            <column name="card_holder" value="USER ONE"/>
+            <column name="expiry_date" valueDate="2025-12-31"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="balance" valueNumeric="2000.00"/>
+            <column name="owner_id" valueComputed="(SELECT id FROM users WHERE username = 'user1')"/>
+            <column name="created_at" valueDate="2024-01-01T00:00:00"/>
+        </insert>
+
+        <!-- Карты для user2 -->
+        <insert tableName="cards">
+            <column name="encrypted_card_number" value="enc_4000001234567892"/>
+            <column name="masked_card_number" value="4000 **** **** 7892"/>
+            <column name="card_holder" value="USER TWO"/>
+            <column name="expiry_date" valueDate="2025-12-31"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="balance" valueNumeric="3000.00"/>
+            <column name="owner_id" valueComputed="(SELECT id FROM users WHERE username = 'user2')"/>
+            <column name="created_at" valueDate="2024-01-01T00:00:00"/>
+        </insert>
+
+        <insert tableName="cards">
+            <column name="encrypted_card_number" value="enc_4000001234567893"/>
+            <column name="masked_card_number" value="4000 **** **** 7893"/>
+            <column name="card_holder" value="USER TWO"/>
+            <column name="expiry_date" valueDate="2024-01-01"/>
+            <column name="status" value="EXPIRED"/>
+            <column name="balance" valueNumeric="0.00"/>
+            <column name="owner_id" valueComputed="(SELECT id FROM users WHERE username = 'user2')"/>
+            <column name="created_at" valueDate="2024-01-01T00:00:00"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="cards">
+                <where>encrypted_card_number like 'enc_%'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

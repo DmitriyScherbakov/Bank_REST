@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="insert-test-users" author="developer">
+        <!-- Пароль: user123 -->
+        <insert tableName="users">
+            <column name="username" value="user1"/>
+            <column name="password" value="$2a$12$RNZt33fKixij.Fyx9s82zu78zKQbxvon4DhTn16fiH5XUq60hVZ4S"/>
+            <column name="email" value="user1@example.com"/>
+            <column name="role" value="USER"/>
+            <column name="created_at" valueDate="2024-01-01T00:00:00"/>
+        </insert>
+
+        <!-- Пароль: user123 -->
+        <insert tableName="users">
+            <column name="username" value="user2"/>
+            <column name="password" value="$2a$12$RNZt33fKixij.Fyx9s82zu78zKQbxvon4DhTn16fiH5XUq60hVZ4S"/>
+            <column name="email" value="user2@example.com"/>
+            <column name="role" value="USER"/>
+            <column name="created_at" valueDate="2024-01-01T00:00:00"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="users">
+                <where>username in ('user1', 'user2')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -8,5 +8,7 @@
     <include file="db/migration/001-create-users-table.xml"/>
     <include file="db/migration/002-create-cards-table.xml"/>
     <include file="db/migration/003-insert-admin-user.xml"/>
+    <include file="db/migration/004-insert-test-users.xml"/>
+    <include file="db/migration/005-insert-test-cards.xml"/>
 
 </databaseChangeLog>

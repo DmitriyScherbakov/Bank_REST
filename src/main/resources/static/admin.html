@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ панель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-cog"></i> Админ панель</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="fas fa-user-shield"></i> <span id="username"></span>
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Выход
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Alert для сообщений -->
+        <div id="alert" class="alert d-none" role="alert"></div>
+
+        <!-- Управление -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCardModal">
+                    <i class="fas fa-plus"></i> Создать карту пользователю
+                </button>
+                <button class="btn btn-info" onclick="loadAllCards()">
+                    <i class="fas fa-refresh"></i> Обновить
+                </button>
+                <button class="btn btn-warning" onclick="updateCardStatuses()">
+                    <i class="fas fa-clock"></i> Обновить статусы карт
+                </button>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5>Всего карт</h5>
+                        <h2 id="totalCards">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5>Активных</h5>
+                        <h2 id="activeCards">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5>Заблокированных</h5>
+                        <h2 id="blockedCards">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5>Истекших</h5>
+                        <h2 id="expiredCards">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Таблица всех карт -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Все карты в системе</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Номер карты</th>
+                                <th>Владелец</th>
+                                <th>Срок действия</th>
+                                <th>Статус</th>
+                                <th>Баланс</th>
+                                <th>Создана</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cardsTableBody">
+                            <!-- Карты будут загружены сюда -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания карты для пользователя -->
+    <div class="modal fade" id="createCardModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Создать карту для пользователя</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="createCardForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="targetUsername" class="form-label">Имя пользователя</label>
+                            <input type="text" class="form-control" id="targetUsername" required placeholder="john_doe">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cardHolder" class="form-label">Имя владельца карты</label>
+                            <input type="text" class="form-control" id="cardHolder" required minlength="2" 
+                                   placeholder="JOHN DOE" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Создать карту</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let allCards = [];
+
+        checkAuth();
+        if (localStorage.getItem('role') !== 'ADMIN') {
+            window.location.href = 'dashboard.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('username').textContent = localStorage.getItem('username');
+            loadAllCards();
+        });
+
+        async function loadAllCards() {
+            try {
+                const response = await apiRequest('/api/admin/cards');
+                allCards = response.content || [];
+                displayCardsTable(allCards);
+                updateStatistics(allCards);
+            } catch (error) {
+                showAlert('Ошибка загрузки карт: ' + error.message, 'danger');
+            }
+        }
+
+        function displayCardsTable(cards) {
+            const tbody = document.getElementById('cardsTableBody');
+            if (cards.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">Карт не найдено</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = cards.map(card => `
+                <tr>
+                    <td>${card.id}</td>
+                    <td><code>${card.maskedCardNumber}</code></td>
+                    <td>${card.cardHolder}</td>
+                    <td>${formatDate(card.expiryDate)}</td>
+                    <td><span class="badge ${getStatusBadgeClass(card.status)}">${getStatusText(card.status)}</span></td>
+                    <td>${card.balance} ₽</td>
+                    <td>${formatDateTime(card.createdAt)}</td>
+                    <td>
+                        ${card.status === 'BLOCKED' ? 
+                            `<button class="btn btn-success btn-sm" onclick="activateCard(${card.id})">
+                                <i class="fas fa-check"></i> Активировать
+                            </button>` : ''
+                        }
+                        <button class="btn btn-danger btn-sm" onclick="deleteCard(${card.id})">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStatistics(cards) {
+            const total = cards.length;
+            const active = cards.filter(card => card.status === 'ACTIVE').length;
+            const blocked = cards.filter(card => card.status === 'BLOCKED').length;
+            const expired = cards.filter(card => card.status === 'EXPIRED').length;
+
+            document.getElementById('totalCards').textContent = total;
+            document.getElementById('activeCards').textContent = active;
+            document.getElementById('blockedCards').textContent = blocked;
+            document.getElementById('expiredCards').textContent = expired;
+        }
+                                    
+        document.getElementById('createCardForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('targetUsername').value;
+            const cardHolder = document.getElementById('cardHolder').value.toUpperCase();
+            
+            if (!username || username.trim() === '') {
+                showAlert('Поле "Имя пользователя" обязательно для заполнения!', 'danger');
+                return;
+            }
+            
+            try {
+                await apiRequest(`/api/admin/cards/${encodeURIComponent(username)}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ cardHolder })
+                });
+                
+                showAlert('Карта успешно создана для пользователя ' + username, 'success');
+                hideModal('createCardModal');
+                document.getElementById('createCardForm').reset();
+                loadAllCards();
+            } catch (error) {
+                showAlert('Ошибка создания карты: ' + error.message, 'danger');
+            }
+        });
+
+        async function activateCard(cardId) {
+            try {
+                await apiRequest(`/api/admin/cards/${cardId}/activate`, { method: 'PUT' });
+                showAlert('Карта активирована', 'success');
+                loadAllCards();
+            } catch (error) {
+                showAlert('Ошибка активации карты: ' + error.message, 'danger');
+            }
+        }
+
+        async function deleteCard(cardId) {
+            if (!confirm('Вы уверены, что хотите удалить эту карту? Это действие необратимо!')) return;
+            
+            try {
+                await apiRequest(`/api/admin/cards/${cardId}`, { method: 'DELETE' });
+                showAlert('Карта удалена', 'info');
+                loadAllCards();
+            } catch (error) {
+                showAlert('Ошибка удаления карты: ' + error.message, 'danger');
+            }
+        }
+
+        async function updateCardStatuses() {
+            try {
+                await apiRequest('/api/admin/cards/update-status', { method: 'POST' });
+                showAlert('Статусы карт обновлены', 'info');
+                loadAllCards();
+            } catch (error) {
+                showAlert('Ошибка обновления статусов: ' + error.message, 'danger');
+            }
+        }
+
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case 'ACTIVE': return 'bg-success';
+                case 'BLOCKED': return 'bg-danger';
+                case 'EXPIRED': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'ACTIVE': return 'Активна';
+                case 'BLOCKED': return 'Заблокирована';
+                case 'EXPIRED': return 'Истекла';
+                default: return status;
+            }
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('ru-RU');
+        }
+
+        function formatDateTime(dateStr) {
+            return new Date(dateStr).toLocaleString('ru-RU');
+        }
+    </script>
+</body>
+</html>

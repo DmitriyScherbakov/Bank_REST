@@ -5,10 +5,15 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
-    <changeSet id="insert-admin-user" author="developer">
+    <changeSet id="create-admin" author="developer">
+        
+        <delete tableName="users">
+            <where>username = 'admin'</where>
+        </delete>
+        
         <insert tableName="users">
             <column name="username" value="admin"/>
-            <column name="password" value="$2a$10$rF.xfNNcCRJwfKv5k8NDeuXwRnRhYYdFJOGUiShV9E8HCXWd7mhgi"/>
+            <column name="password" value="$2a$12$1uLzosglzbY7RQJoBeYl8eQC4uzwVcr6S7o/sXtWX.92JlLooDlG."/>
             <column name="email" value="admin@bank.com"/>
             <column name="role" value="ADMIN"/>
             <column name="created_at" valueDate="2024-01-01T00:00:00"/>
